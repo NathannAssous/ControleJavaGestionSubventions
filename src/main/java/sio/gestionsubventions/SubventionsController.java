@@ -1,5 +1,6 @@
 package sio.gestionsubventions;
 
+import javafx.application.Platform;
 import javafx.event.Event;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -42,6 +43,7 @@ public class SubventionsController implements Initializable
     private TreeView tvMontantsParSecteurs;
     @FXML
     private TreeView tvMontantsParAnnees;
+    TreeItem root;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle)
@@ -55,6 +57,9 @@ public class SubventionsController implements Initializable
 
         cboAnnees.getItems().addAll(2020,2021,2022,2023,2024,2025);
         cboAnnees.getSelectionModel().selectFirst();
+
+        root = new TreeItem();
+        lvVillesStats = new ListView();
 
         // Jeu d'essais au cas où :)
 //        Structure structure1 = new Structure("Structure 1",1000);
@@ -131,6 +136,7 @@ public class SubventionsController implements Initializable
     @FXML
     public void btnAffecterSubventionClicked(Event event)
     {
+        System.out.println("btnAffecterSubventionClicked called");
         if (lvVilles.getSelectionModel().getSelectedItem()==null)
         {
             Alert alert = new Alert(Alert.AlertType.WARNING);
@@ -165,17 +171,77 @@ public class SubventionsController implements Initializable
         }
         else
         {
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle("Affectation réussie");
-            alert.setHeaderText("");
-            alert.setContentText("Subvention enregistrée");
-            alert.showAndWait();
+            String nomVille = lvVilles.getSelectionModel().getSelectedItem().toString();
+            System.out.println("Nom de la ville : " + nomVille);
+            lvVillesStats.getItems().add(nomVille);
+
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Affectation réussie");
+                alert.setHeaderText("");
+                alert.setContentText("Subvention enregistrée");
+                alert.showAndWait();
         }
     }
 
     @FXML
     public void lvVillesStatsClicked(Event event)
     {
+        String nomVille = lvVilles.getSelectionModel().getSelectedItem().toString();
+        String nomSecteur = lvSecteurs.getSelectionModel().getSelectedItem().toString();
+        String annee = cboAnnees.getSelectionModel().getSelectedItem().toString();
+        String structure = txtNomStructure.getText();
+        int montant = Integer.parseInt(txtMontant.getText());
 
+        Structure uneStructure = new Structure(structure,montant);
+
+        if (!lesSubventions.containsKey(nomVille))
+        {
+            ArrayList<Structure> laStructure = new ArrayList<>();
+            laStructure.add(uneStructure);
+
+            TreeMap<Integer, ArrayList<Structure>> lesStrutures = new TreeMap<>();
+            lesStrutures.put(montant,laStructure);
+
+            HashMap<String, TreeMap<Integer,ArrayList<Structure>>> lesSecteurs = new HashMap<>();
+            lesSecteurs.put(nomSecteur,lesStrutures);
+
+            lesSubventions.put(nomVille,lesSecteurs);
+        }
+        else if (!lesSubventions.get(nomVille).containsKey(nomSecteur))
+        {
+            ArrayList<Structure> laStructure = new ArrayList<>();
+            laStructure.add(uneStructure);
+
+            TreeMap<Integer, ArrayList<Structure>> lesStrutures = new TreeMap<>();
+            lesStrutures.put(montant,laStructure);
+
+            lesSubventions.get(nomVille).put(nomSecteur,lesStrutures);
+        }
+        else if (!lesSubventions.get(nomVille).get(nomSecteur).containsKey(montant))
+        {
+            ArrayList<Structure> laStructure = new ArrayList<>();
+            laStructure.add(uneStructure);
+
+            lesSubventions.get(nomVille).get(nomSecteur).put(montant,laStructure);
+        }
+        else
+        {
+            lesSubventions.get(nomVille).get(nomSecteur).get(montant).add(uneStructure);
+        }
+
+        TreeItem noeudVille = null;
+        TreeItem noeudSecteur = null;
+        TreeItem noeudAnnee = null;
+        TreeItem noeudStructure = null;
+
+        root.getChildren().clear();
+
+        for (String ville : lesSubventions.keySet())
+        {
+            noeudVille = new TreeItem(ville);
+            noeudVille.setExpanded(true);
+        }
+        root.getChildren().add(noeudVille);
+        root.setExpanded(true);
     }
 }
